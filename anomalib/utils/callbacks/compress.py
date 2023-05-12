@@ -39,14 +39,14 @@ class CompressModelCallback(Callback):
         self.dirpath = dirpath
         self.filename = filename
 
-    def on_train_end(self, trainer, pl_module: LightningModule) -> None:  # pylint: disable=W0613
+    def on_train_end(self, trainer, pl_module: LightningModule) -> None:    # pylint: disable=W0613
         """Call when the train ends.
 
         Converts the model to ``onnx`` format and then calls OpenVINO's model optimizer to get the
         ``.xml`` and ``.bin`` IR files.
         """
         os.makedirs(self.dirpath, exist_ok=True)
-        onnx_path = os.path.join(self.dirpath, self.filename + ".onnx")
+        onnx_path = os.path.join(self.dirpath, f"{self.filename}.onnx")
         pl_module = cast(AnomalyModule, pl_module)
         export_convert(
             model=pl_module,

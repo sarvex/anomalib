@@ -89,16 +89,26 @@ class TestModel:
         threshold = thresholds[config.model.name][config.dataset.category]
         if "optimization" in config.keys() and config.optimization.nncf.apply:
             threshold = threshold.nncf
-        if not  (np.isclose(results["image_AUROC"], threshold["image_AUROC"], rtol=0.01) or (results["image_AUROC"] >= threshold["image_AUROC"])):
+        if (
+            not np.isclose(
+                results["image_AUROC"], threshold["image_AUROC"], rtol=0.01
+            )
+            and results["image_AUROC"] < threshold["image_AUROC"]
+        ):
             raise AssertionError(
                 f"results['image_AUROC']:{results['image_AUROC']} >= threshold['image_AUROC']:{threshold['image_AUROC']}"
             )
 
-        if config.dataset.task == "segmentation":
-            if not (np.isclose(results["pixel_AUROC"] ,threshold["pixel_AUROC"], rtol=0.01) or (results["pixel_AUROC"] >= threshold["pixel_AUROC"])):
-                raise AssertionError(
-                    f"results['pixel_AUROC']:{results['pixel_AUROC']} >= threshold['pixel_AUROC']:{threshold['pixel_AUROC']}"
-                )
+        if (
+            config.dataset.task == "segmentation"
+            and not np.isclose(
+                results["pixel_AUROC"], threshold["pixel_AUROC"], rtol=0.01
+            )
+            and results["pixel_AUROC"] < threshold["pixel_AUROC"]
+        ):
+            raise AssertionError(
+                f"results['pixel_AUROC']:{results['pixel_AUROC']} >= threshold['pixel_AUROC']:{threshold['pixel_AUROC']}"
+            )
         return results
 
     def _save_to_csv(self, config: Union[DictConfig, ListConfig], results: Dict):
@@ -154,21 +164,27 @@ class TestModel:
     def test_model(self, path=get_dataset_path(), score_type=None):
         run_configs = get_model_nncf_cat()
         with ProcessPoolExecutor(
-            max_workers=torch.cuda.device_count(), mp_context=multiprocessing.get_context("spawn")
-        ) as executor:
-            jobs = []
-            for device_id, run_split in enumerate(
-                range(0, len(run_configs), math.ceil(len(run_configs) / torch.cuda.device_count()))
-            ):
-                jobs.append(
-                    executor.submit(
-                        self.runner,
-                        run_configs[run_split : run_split + math.ceil(len(run_configs) / torch.cuda.device_count())],
-                        path,
-                        score_type,
-                        device_id,
+                max_workers=torch.cuda.device_count(), mp_context=multiprocessing.get_context("spawn")
+            ) as executor:
+            jobs = [
+                executor.submit(
+                    self.runner,
+                    run_configs[
+                        run_split : run_split
+                        + math.ceil(len(run_configs) / torch.cuda.device_count())
+                    ],
+                    path,
+                    score_type,
+                    device_id,
+                )
+                for device_id, run_split in enumerate(
+                    range(
+                        0,
+                        len(run_configs),
+                        math.ceil(len(run_configs) / torch.cuda.device_count()),
                     )
                 )
+            ]
             for job in jobs:
                 try:
                     job.result()

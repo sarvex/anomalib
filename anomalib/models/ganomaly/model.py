@@ -113,7 +113,7 @@ class GanomalyLightning(AnomalyModule):
         )
         return [optimizer_d, optimizer_g]
 
-    def training_step(self, batch, _, optimizer_idx):  # pylint: disable=arguments-differ
+    def training_step(self, batch, _, optimizer_idx):    # pylint: disable=arguments-differ
         """Training step.
 
         Args:
@@ -140,9 +140,8 @@ class GanomalyLightning(AnomalyModule):
                 pred_fake, torch.zeros(size=pred_fake.shape, dtype=torch.float32, device=pred_fake.device)
             )
             loss_discriminator = (error_discriminator_fake + error_discriminator_real) * 0.5
-            loss = {"loss": loss_discriminator}
+            return {"loss": loss_discriminator}
 
-        # Generator
         else:
             # forward pass
             fake, latent_i, latent_o = self.generator(images)
@@ -159,9 +158,7 @@ class GanomalyLightning(AnomalyModule):
                 + error_enc * self.hparams.model.wenc
             )
 
-            loss = {"loss": loss_generator}
-
-        return loss
+            return {"loss": loss_generator}
 
     def on_validation_start(self) -> None:
         """Reset min and max values for current validation epoch."""

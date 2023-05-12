@@ -71,7 +71,7 @@ class VisualizerCallback(Callback):
                 if log_to in logger_type and module.logger is not None:
                     module.logger.add_image(
                         image=visualizer.figure,
-                        name=filename.parent.name + "_" + filename.name,
+                        name=f"{filename.parent.name}_{filename.name}",
                         global_step=module.global_step,
                     )
                 else:
@@ -105,10 +105,7 @@ class VisualizerCallback(Callback):
         """
         assert outputs is not None
 
-        if self.inputs_are_normalized:
-            normalize = False  # anomaly maps are already normalized
-        else:
-            normalize = True  # raw anomaly maps. Still need to normalize
+        normalize = not self.inputs_are_normalized
         threshold = pl_module.pixel_metrics.F1.threshold
 
         for (filename, image, true_mask, anomaly_map) in zip(

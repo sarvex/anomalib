@@ -76,8 +76,7 @@ class AnomalyMapGenerator:
         """
         confidence = patch_scores[torch.argmax(patch_scores[:, 0])]
         weights = 1 - (torch.max(torch.exp(confidence)) / torch.sum(torch.exp(confidence)))
-        score = weights * max(patch_scores[:, 0])
-        return score
+        return weights * max(patch_scores[:, 0])
 
     def __call__(self, **kwargs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns anomaly_map and anomaly_score.
@@ -165,13 +164,10 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         embedding = self.reshape_embedding(embedding)
 
         if self.training:
-            output = embedding
-        else:
-            patch_scores = self.nearest_neighbors(embedding=embedding, n_neighbors=9)
-            anomaly_map, anomaly_score = self.anomaly_map_generator(patch_scores=patch_scores)
-            output = (anomaly_map, anomaly_score)
-
-        return output
+            return embedding
+        patch_scores = self.nearest_neighbors(embedding=embedding, n_neighbors=9)
+        anomaly_map, anomaly_score = self.anomaly_map_generator(patch_scores=patch_scores)
+        return anomaly_map, anomaly_score
 
     def generate_embedding(self, features: Dict[str, Tensor]) -> torch.Tensor:
         """Generate embedding from hierarchical feature map.

@@ -71,9 +71,9 @@ class Loss(nn.Module):
 
         norm_teacher_features = F.normalize(teacher_feats)
         norm_student_features = F.normalize(student_feats)
-        layer_loss = (0.5 / (width * height)) * self.mse_loss(norm_teacher_features, norm_student_features)
-
-        return layer_loss
+        return (0.5 / (width * height)) * self.mse_loss(
+            norm_teacher_features, norm_student_features
+        )
 
     def forward(self, teacher_features: Dict[str, Tensor], student_features: Dict[str, Tensor]) -> Tensor:
         """Compute the overall loss via the weighted average of the layer losses computed by the cosine similarity.
@@ -87,13 +87,11 @@ class Loss(nn.Module):
         """
 
         layer_losses: List[Tensor] = []
-        for layer in teacher_features.keys():
+        for layer in teacher_features:
             loss = self.compute_layer_loss(teacher_features[layer], student_features[layer])
             layer_losses.append(loss)
 
-        total_loss = torch.stack(layer_losses).sum()
-
-        return total_loss
+        return torch.stack(layer_losses).sum()
 
 
 class AnomalyMapGenerator:
@@ -137,7 +135,7 @@ class AnomalyMapGenerator:
         """
         batch_size = list(teacher_features.values())[0].shape[0]
         anomaly_map = torch.ones(batch_size, 1, self.image_size[0], self.image_size[1])
-        for layer in teacher_features.keys():
+        for layer in teacher_features:
             layer_map = self.compute_layer_map(teacher_features[layer], student_features[layer])
             anomaly_map = anomaly_map.to(layer_map.device)
             anomaly_map *= layer_map
@@ -163,7 +161,7 @@ class AnomalyMapGenerator:
             torch.Tensor: anomaly map
         """
 
-        if not ("teacher_features" in kwds and "student_features" in kwds):
+        if "teacher_features" not in kwds or "student_features" not in kwds:
             raise ValueError(f"Expected keys `teacher_features` and `student_features. Found {kwds.keys()}")
 
         teacher_features: Dict[str, Tensor] = kwds["teacher_features"]

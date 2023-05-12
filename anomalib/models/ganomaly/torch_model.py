@@ -69,7 +69,7 @@ class Encoder(nn.Module):
 
         # Create pyramid features to reach latent vector
         self.pyramid_features = nn.Sequential()
-        input_size = input_size // 2
+        input_size //= 2
         while input_size > 4:
             in_features = n_features
             out_features = n_features * 2
@@ -80,7 +80,7 @@ class Encoder(nn.Module):
             self.pyramid_features.add_module(f"pyramid-{out_features}-batchnorm", nn.BatchNorm2d(out_features))
             self.pyramid_features.add_module(f"pyramid-{out_features}-relu", nn.LeakyReLU(0.2, inplace=True))
             n_features = out_features
-            input_size = input_size // 2
+            input_size //= 2
 
         # Final conv
         if add_final_conv_layer:
@@ -134,7 +134,7 @@ class Decoder(nn.Module):
 
         # Create inverse pyramid
         self.inverse_pyramid = nn.Sequential()
-        input_size = input_size // 2
+        input_size //= 2
         while input_size > 4:
             in_features = n_input_features
             out_features = n_input_features // 2
@@ -145,7 +145,7 @@ class Decoder(nn.Module):
             self.inverse_pyramid.add_module(f"pyramid-{out_features}-batchnorm", nn.BatchNorm2d(out_features))
             self.inverse_pyramid.add_module(f"pyramid-{out_features}-relu", nn.ReLU(True))
             n_input_features = out_features
-            input_size = input_size // 2
+            input_size //= 2
 
         # Extra Layers
         self.extra_layers = nn.Sequential()

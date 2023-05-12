@@ -63,12 +63,16 @@ def update_nncf_config(config: Union[DictConfig, ListConfig]) -> Union[DictConfi
     """
     crop_size = config.dataset.image_size
     sample_size = (crop_size, crop_size) if isinstance(crop_size, int) else crop_size
-    if "optimization" in config.keys():
-        if "nncf" in config.optimization.keys():
-            config.optimization.nncf.input_info.sample_size = [1, 3, *sample_size]
-            if config.optimization.nncf.apply:
-                if "update_config" in config.optimization.nncf:
-                    return OmegaConf.merge(config, config.optimization.nncf.update_config)
+    if (
+        "optimization" in config.keys()
+        and "nncf" in config.optimization.keys()
+    ):
+        config.optimization.nncf.input_info.sample_size = [1, 3, *sample_size]
+        if (
+            config.optimization.nncf.apply
+            and "update_config" in config.optimization.nncf
+        ):
+            return OmegaConf.merge(config, config.optimization.nncf.update_config)
     return config
 
 
@@ -87,18 +91,23 @@ def update_multi_gpu_training_config(config: Union[DictConfig, ListConfig]) -> U
         Union[DictConfig, ListConfig]: Updated config
     """
     # validate accelerator
-    if config.trainer.accelerator is not None:
-        if config.trainer.accelerator.lower() != "ddp":
-            if config.trainer.accelerator.lower() in ("dp", "ddp_spawn", "ddp2"):
-                warn(
-                    f"Using accelerator {config.trainer.accelerator.lower()} is discouraged. "
-                    f"Please use one of [null, ddp]. Setting accelerator to ddp"
-                )
-                config.trainer.accelerator = "ddp"
-            else:
-                raise ValueError(
-                    f"Unsupported accelerator found: {config.trainer.accelerator}. Should be one of [null, ddp]"
-                )
+    if (
+        config.trainer.accelerator is not None
+        and config.trainer.accelerator.lower() != "ddp"
+    ):
+        if config.trainer.accelerator.lower() not in (
+            "dp",
+            "ddp_spawn",
+            "ddp2",
+        ):
+            raise ValueError(
+                f"Unsupported accelerator found: {config.trainer.accelerator}. Should be one of [null, ddp]"
+            )
+        warn(
+            f"Using accelerator {config.trainer.accelerator.lower()} is discouraged. "
+            f"Please use one of [null, ddp]. Setting accelerator to ddp"
+        )
+        config.trainer.accelerator = "ddp"
     # Increase learning rate
     # since pytorch averages the gradient over devices, the idea is to
     # increase the learning rate by the number of devices

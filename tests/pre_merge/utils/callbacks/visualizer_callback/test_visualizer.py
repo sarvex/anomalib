@@ -17,8 +17,7 @@ def get_dummy_module(config):
 
 
 def get_dummy_logger(config, tempdir):
-    logger = AnomalibTensorBoardLogger(name=f"tensorboard_logs", save_dir=tempdir)
-    return logger
+    return AnomalibTensorBoardLogger(name="tensorboard_logs", save_dir=tempdir)
 
 
 @pytest.mark.parametrize("dataset", ["segmentation"])
@@ -41,5 +40,7 @@ def test_add_images(dataset):
             raise Exception("Failed to save to local path")
 
         # test if tensorboard logs are created
-        if len(glob.glob(os.path.join(dir_loc, "tensorboard_logs", "version_*"))) == 0:
+        if not glob.glob(
+            os.path.join(dir_loc, "tensorboard_logs", "version_*")
+        ):
             raise Exception("Failed to save to tensorboard")

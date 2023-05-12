@@ -129,10 +129,10 @@ class NNCFCallback(Callback):
         Exports onnx model and if compression controller is not None, uses the onnx model to generate the OpenVINO IR.
         """
         os.makedirs(self.dirpath, exist_ok=True)
-        onnx_path = os.path.join(self.dirpath, self.filename + ".onnx")
+        onnx_path = os.path.join(self.dirpath, f"{self.filename}.onnx")
         if self.comp_ctrl is not None:
             self.comp_ctrl.export_model(onnx_path)
-        optimize_command = "mo --input_model " + onnx_path + " --output_dir " + self.dirpath
+        optimize_command = f"mo --input_model {onnx_path} --output_dir {self.dirpath}"
         os.system(optimize_command)
 
     def on_train_epoch_start(self, _trainer: pl.Trainer, _pl_module: pl.LightningModule) -> None:

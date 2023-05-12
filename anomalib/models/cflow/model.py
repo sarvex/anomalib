@@ -46,8 +46,11 @@ def get_logp(dim_feature_vector: int, p_u: torch.Tensor, logdet_j: torch.Tensor)
         torch.Tensor: Log probability
     """
     ln_sqrt_2pi = -np.log(np.sqrt(2 * np.pi))  # ln(sqrt(2*pi))
-    logp = dim_feature_vector * ln_sqrt_2pi - 0.5 * torch.sum(p_u ** 2, 1) + logdet_j
-    return logp
+    return (
+        dim_feature_vector * ln_sqrt_2pi
+        - 0.5 * torch.sum(p_u**2, 1)
+        + logdet_j
+    )
 
 
 class AnomalyMapGenerator:
@@ -94,10 +97,7 @@ class AnomalyMapGenerator:
         for layer_idx in range(len(self.pool_layers)):
             score_map += test_map[layer_idx]
         score_mask = score_map
-        # invert probs to anomaly scores
-        anomaly_map = score_mask.max() - score_mask
-
-        return anomaly_map
+        return score_mask.max() - score_mask
 
     def __call__(self, **kwargs: Union[List[Tensor], List[int], List[List]]) -> Tensor:
         """Returns anomaly_map.
@@ -115,7 +115,11 @@ class AnomalyMapGenerator:
         Returns:
             torch.Tensor: anomaly map
         """
-        if not ("distribution" in kwargs and "height" in kwargs and "width" in kwargs):
+        if (
+            "distribution" not in kwargs
+            or "height" not in kwargs
+            or "width" not in kwargs
+        ):
             raise KeyError(f"Expected keys `distribution`, `height` and `width`. Found {kwargs.keys()}")
 
         # placate mypy
@@ -246,11 +250,10 @@ class CflowLightning(AnomalyModule):
         for decoder_idx in range(len(self.model.pool_layers)):
             decoders_parameters.extend(list(self.model.decoders[decoder_idx].parameters()))
 
-        optimizer = optim.Adam(
+        return optim.Adam(
             params=decoders_parameters,
             lr=self.hparams.model.lr,
         )
-        return optimizer
 
     def training_step(self, batch, _):  # pylint: disable=arguments-differ
         """Training Step of CFLOW.

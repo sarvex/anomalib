@@ -120,14 +120,15 @@ class PadimModel(nn.Module):
         if self.apply_tiling:
             embeddings = self.tiler.untile(embeddings)
 
-        if self.training:
-            output = embeddings
-        else:
-            output = self.anomaly_map_generator(
-                embedding=embeddings, mean=self.gaussian.mean, inv_covariance=self.gaussian.inv_covariance
+        return (
+            embeddings
+            if self.training
+            else self.anomaly_map_generator(
+                embedding=embeddings,
+                mean=self.gaussian.mean,
+                inv_covariance=self.gaussian.inv_covariance,
             )
-
-        return output
+        )
 
     def generate_embedding(self, features: Dict[str, Tensor]) -> Tensor:
         """Generate embedding from hierarchical feature map.
@@ -200,13 +201,12 @@ class AnomalyMapGenerator:
             Resized distance matrix matching the input image size
         """
 
-        score_map = F.interpolate(
+        return F.interpolate(
             distance.unsqueeze(1),
             size=self.image_size,
             mode="bilinear",
             align_corners=False,
         )
-        return score_map
 
     def smooth_anomaly_map(self, anomaly_map: Tensor) -> Tensor:
         """Apply gaussian smoothing to the anomaly map.
@@ -243,9 +243,7 @@ class AnomalyMapGenerator:
             stats=[mean.to(embedding.device), inv_covariance.to(embedding.device)],
         )
         up_sampled_score_map = self.up_sample(score_map)
-        smoothed_anomaly_map = self.smooth_anomaly_map(up_sampled_score_map)
-
-        return smoothed_anomaly_map
+        return self.smooth_anomaly_map(up_sampled_score_map)
 
     def __call__(self, **kwds):
         """Returns anomaly_map.
@@ -263,7 +261,11 @@ class AnomalyMapGenerator:
             torch.Tensor: anomaly map
         """
 
-        if not ("embedding" in kwds and "mean" in kwds and "inv_covariance" in kwds):
+        if (
+            "embedding" not in kwds
+            or "mean" not in kwds
+            or "inv_covariance" not in kwds
+        ):
             raise ValueError(f"Expected keys `embedding`, `mean` and `covariance`. Found {kwds.keys()}")
 
         embedding: Tensor = kwds["embedding"]

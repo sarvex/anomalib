@@ -78,10 +78,7 @@ class Inferencer(ABC):
             np.ndarray: Output predictions to be visualized.
         """
         if meta_data is None:
-            if hasattr(self, "meta_data"):
-                meta_data = getattr(self, "meta_data")
-            else:
-                meta_data = {}
+            meta_data = getattr(self, "meta_data") if hasattr(self, "meta_data") else {}
         if isinstance(image, (str, Path)):
             image = read_image(image)
         meta_data["image_shape"] = image.shape[:2]
@@ -90,7 +87,7 @@ class Inferencer(ABC):
         predictions = self.forward(processed_image)
         anomaly_map, pred_scores = self.post_process(predictions, meta_data=meta_data)
 
-        if superimpose is True:
+        if superimpose:
             anomaly_map = superimpose_anomaly_map(anomaly_map, image)
 
         return anomaly_map, pred_scores

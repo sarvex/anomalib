@@ -46,23 +46,21 @@ def get_model(config: Union[DictConfig, ListConfig]) -> AnomalyModule:
     Returns:
         AnomalyModule: Anomaly Model
     """
-    openvino_model_list: List[str] = ["stfpm"]
-    torch_model_list: List[str] = ["padim", "stfpm", "dfkde", "dfm", "patchcore", "cflow", "ganomaly"]
     model: AnomalyModule
 
     if config.openvino:
-        if config.model.name in openvino_model_list:
-            module = import_module(f"anomalib.models.{config.model.name}.model")
-            model = getattr(module, f"{config.model.name.capitalize()}OpenVINO")
-        else:
+        openvino_model_list: List[str] = ["stfpm"]
+        if config.model.name not in openvino_model_list:
             raise ValueError(f"Unknown model {config.model.name} for OpenVINO model!")
+        module = import_module(f"anomalib.models.{config.model.name}.model")
+        model = getattr(module, f"{config.model.name.capitalize()}OpenVINO")
     else:
-        if config.model.name in torch_model_list:
-            module = import_module(f"anomalib.models.{config.model.name}.model")
-            model = getattr(module, f"{config.model.name.capitalize()}Lightning")
-        else:
+        torch_model_list: List[str] = ["padim", "stfpm", "dfkde", "dfm", "patchcore", "cflow", "ganomaly"]
+        if config.model.name not in torch_model_list:
             raise ValueError(f"Unknown model {config.model.name}!")
 
+        module = import_module(f"anomalib.models.{config.model.name}.model")
+        model = getattr(module, f"{config.model.name.capitalize()}Lightning")
     model = model(config)
 
     if "init_weights" in config.keys() and config.init_weights:
